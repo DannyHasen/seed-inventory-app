@@ -3,6 +3,7 @@ package com.projectEvergreen.seed_inventory.app;
 import com.projectEvergreen.seed_inventory.io.CropStore;
 import com.projectEvergreen.seed_inventory.model.Crop;
 import com.projectEvergreen.seed_inventory.model.Crop.Season;
+import javax.swing.table.TableCellEditor;
 
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
