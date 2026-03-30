@@ -30,23 +30,62 @@ public class CropStore
             return new ArrayList<>();
         }
 
+        if (Files.size(file) == 0)
+        {
+            return new ArrayList<>();
+        }
+
         byte[] data = Files.readAllBytes(file);
-        return mapper.readValue(data, new TypeReference<List<Crop>>() {});
+        List<Crop> crops = mapper.readValue(data, new TypeReference<List<Crop>>() {});
+
+        if (crops == null)
+        {
+            return new ArrayList<>();
+        }
+
+        validateCrops(crops);
+        return crops;
     }
 
     public void saveAll(List<Crop> crops) throws IOException
     {
-        if (file.getParent() != null && !Files.exists(file.getParent()))
+        if (crops == null)
         {
-            Files.createDirectories(file.getParent());
+            throw new IllegalArgumentException("Crop list cannot be null.");
+        }
+
+        validateCrops(crops);
+
+        Path parent = file.getParent();
+        if (parent != null && !Files.exists(parent))
+        {
+            Files.createDirectories(parent);
         }
 
         byte[] json = mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(crops);
 
-        Path temp = Files.createTempFile(file.getParent(), "crops-", ".tmp");
+        Path temp = Files.createTempFile(parent, "crops-", ".tmp");
         Files.write(temp, json, StandardOpenOption.TRUNCATE_EXISTING);
 
         Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+    }
+
+    private void validateCrops(List<Crop> crops)
+    {
+        for (int i = 0; i < crops.size(); i++)
+        {
+            Crop crop = crops.get(i);
+
+            if (crop == null)
+            {
+                throw new IllegalArgumentException("Crop at index " + i + " is null.");
+            }
+
+            crop.setName(crop.getName());
+            crop.setSeason(crop.getSeason());
+            crop.setCurrentAmount(crop.getCurrentAmount());
+            crop.setManualAvgCropPeriodDays(crop.getManualAvgCropPeriodDays());
+        }
     }
 
     public static CropStore defaultStore()
