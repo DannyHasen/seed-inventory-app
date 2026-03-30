@@ -3,8 +3,10 @@ package com.projectEvergreen.seed_inventory.app;
 import com.projectEvergreen.seed_inventory.io.CropStore;
 import com.projectEvergreen.seed_inventory.model.Crop;
 import com.projectEvergreen.seed_inventory.model.Crop.Season;
-import javax.swing.table.TableCellEditor;
 
+import javax.swing.table.TableCellEditor;
+import javax.swing.JFormattedTextField;
+import javax.swing.text.NumberFormatter;
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.DefaultCellEditor;
@@ -47,6 +49,18 @@ public class EvergreenApp extends JFrame
         JComboBox<Season> season = new JComboBox<>(Season.values());
         JSpinner amount = new JSpinner(new SpinnerNumberModel(0, 0, 1_000_000, 1));
         JSpinner avgDays = new JSpinner(new SpinnerNumberModel(0, 0, 3650, 1));
+        
+        JSpinner.NumberEditor amountEditor = new JSpinner.NumberEditor(amount, "#");
+        JSpinner.NumberEditor avgDaysEditor = new JSpinner.NumberEditor(avgDays, "#");
+        
+        amount.setEditor(amountEditor);
+        avgDays.setEditor(avgDaysEditor);
+        
+        JFormattedTextField amountField = amountEditor.getTextField();
+        JFormattedTextField avgDaysField = avgDaysEditor.getTextField();
+        
+        ((NumberFormatter) amountField.getFormatter()).setAllowsInvalid(true);
+        ((NumberFormatter) avgDaysField.getFormatter()).setAllowsInvalid(true);
 
         JButton add = new JButton("Add");
 
