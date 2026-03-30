@@ -12,16 +12,17 @@ public class Crop
     private int currentAmount;
     private Integer manualAvgCropPeriodDays;
 
-    public Crop() {
-        //needed, left empty
+    public Crop()
+    {
+        // needed for JSON deserialization
     }
 
     public Crop(String name, Season season, int currentAmount, Integer manualAvgCropPeriodDays)
     {
-        this.name = name;
-        this.season = season;
-        this.currentAmount = currentAmount;
-        this.manualAvgCropPeriodDays = manualAvgCropPeriodDays;
+        setName(name);
+        setSeason(season);
+        setCurrentAmount(currentAmount);
+        setManualAvgCropPeriodDays(manualAvgCropPeriodDays);
     }
 
     public String getName()
@@ -31,7 +32,12 @@ public class Crop
 
     public void setName(String name)
     {
-        this.name = name;
+        if (name == null || name.trim().isEmpty())
+        {
+            throw new IllegalArgumentException("Name cannot be blank.");
+        }
+
+        this.name = name.trim();
     }
 
     public Season getSeason()
@@ -41,6 +47,11 @@ public class Crop
 
     public void setSeason(Season season)
     {
+        if (season == null)
+        {
+            throw new IllegalArgumentException("Season is required.");
+        }
+
         this.season = season;
     }
 
@@ -51,6 +62,11 @@ public class Crop
 
     public void setCurrentAmount(int currentAmount)
     {
+        if (currentAmount < 0)
+        {
+            throw new IllegalArgumentException("Amount must be 0 or greater.");
+        }
+
         this.currentAmount = currentAmount;
     }
 
@@ -61,6 +77,11 @@ public class Crop
 
     public void setManualAvgCropPeriodDays(Integer manualAvgCropPeriodDays)
     {
+        if (manualAvgCropPeriodDays != null && manualAvgCropPeriodDays < 0)
+        {
+            throw new IllegalArgumentException("Avg days must be 0 or greater.");
+        }
+
         this.manualAvgCropPeriodDays = manualAvgCropPeriodDays;
     }
 }
