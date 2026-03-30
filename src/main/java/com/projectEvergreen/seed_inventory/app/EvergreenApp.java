@@ -93,7 +93,7 @@ public class EvergreenApp extends JFrame
         add.addActionListener(e ->
         {
             String n = name.getText().trim();
-
+        
             if (n.isEmpty())
             {
                 JOptionPane.showMessageDialog(
@@ -104,11 +104,83 @@ public class EvergreenApp extends JFrame
                 );
                 return;
             }
-
-            int amt = (Integer) amount.getValue();
-            int avg = (Integer) avgDays.getValue();
-            Integer avgOrNull = (avg == 0 ? null : avg);
-
+        
+            try
+            {
+                amount.commitEdit();
+                avgDays.commitEdit();
+            }
+            catch (java.text.ParseException ex)
+            {
+                JOptionPane.showMessageDialog(
+                    this,
+                    "Amount and Avg Days must be whole numbers.",
+                    "Invalid Input",
+                    JOptionPane.WARNING_MESSAGE
+                );
+                return;
+            }
+        
+            String amountText = amountField.getText().trim();
+            String avgDaysText = avgDaysField.getText().trim();
+        
+            int amt;
+            try
+            {
+                amt = Integer.parseInt(amountText);
+                if (amt < 0)
+                {
+                    JOptionPane.showMessageDialog(
+                        this,
+                        "Amount must be 0 or greater.",
+                        "Invalid Input",
+                        JOptionPane.WARNING_MESSAGE
+                    );
+                    return;
+                }
+            }
+            catch (NumberFormatException ex)
+            {
+                JOptionPane.showMessageDialog(
+                    this,
+                    "Amount must be a whole number.",
+                    "Invalid Input",
+                    JOptionPane.WARNING_MESSAGE
+                );
+                return;
+            }
+        
+            Integer avgOrNull = null;
+            if (!avgDaysText.isEmpty())
+            {
+                try
+                {
+                    int avg = Integer.parseInt(avgDaysText);
+                    if (avg < 0)
+                    {
+                        JOptionPane.showMessageDialog(
+                            this,
+                            "Avg Days must be 0 or greater.",
+                            "Invalid Input",
+                            JOptionPane.WARNING_MESSAGE
+                        );
+                        return;
+                    }
+        
+                    avgOrNull = (avg == 0 ? null : avg);
+                }
+                catch (NumberFormatException ex)
+                {
+                    JOptionPane.showMessageDialog(
+                        this,
+                        "Avg Days must be a whole number.",
+                        "Invalid Input",
+                        JOptionPane.WARNING_MESSAGE
+                    );
+                    return;
+                }
+            }
+        
             try
             {
                 tableModel.add(new Crop(
@@ -117,7 +189,7 @@ public class EvergreenApp extends JFrame
                     amt,
                     avgOrNull
                 ));
-
+        
                 name.setText("");
                 season.setSelectedIndex(0);
                 amount.setValue(0);
