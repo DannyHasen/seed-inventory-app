@@ -1,41 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { supabase } from "./supabaseClient";
+import Auth from "./Auth";
 
 const SEASONS = ["WINTER", "SPRING", "SUMMER", "FALL"];
-const STORAGE_KEY = "evergreen-crops-v1";
 const LOW_STOCK_THRESHOLD = 10;
-
-function loadCrops() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-
-    return parsed.filter(Boolean).map((crop, index) => ({
-      id: crop.id ?? `${Date.now()}-${index}`,
-      name: String(crop.name ?? "").trim(),
-      season: SEASONS.includes(crop.season) ? crop.season : "SPRING",
-      currentAmount:
-        Number.isInteger(crop.currentAmount) && crop.currentAmount >= 0
-          ? crop.currentAmount
-          : 0,
-      manualAvgCropPeriodDays:
-        crop.manualAvgCropPeriodDays === null ||
-        crop.manualAvgCropPeriodDays === undefined
-          ? null
-          : Number.isInteger(crop.manualAvgCropPeriodDays) &&
-            crop.manualAvgCropPeriodDays >= 0
-          ? crop.manualAvgCropPeriodDays
-          : null,
-    }));
-  } catch {
-    return [];
-  }
-}
-
-function saveCrops(crops) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(crops));
-}
 
 function validateCrop(form) {
   const name = form.name.trim();
@@ -54,17 +22,6 @@ function validateCrop(form) {
   return null;
 }
 
-function normalizeCrop(form, existingId = null) {
-  return {
-    id: existingId ?? crypto.randomUUID(),
-    name: form.name.trim(),
-    season: form.season,
-    currentAmount: Number(form.currentAmount),
-    manualAvgCropPeriodDays:
-      form.manualAvgCropPeriodDays === "" ? null : Number(form.manualAvgCropPeriodDays),
-  };
-}
-
 const emptyForm = {
   name: "",
   season: "SPRING",
@@ -73,7 +30,10 @@ const emptyForm = {
 };
 
 export default function App() {
-  const [crops, setCrops] = useState(() => loadCrops());
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const [crops, setCrops] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [query, setQuery] = useState("");
@@ -83,22 +43,66 @@ export default function App() {
   const [installPrompt, setInstallPrompt] = useState(null);
 
   useEffect(() => {
-    saveCrops(crops);
-  }, [crops]);
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     const handler = (event) => {
       event.preventDefault();
       setInstallPrompt(event);
     };
+
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
+  useEffect(() => {
+    if (session?.user) {
+      fetchCrops();
+    } else {
+      setCrops([]);
+    }
+  }, [session]);
+
+  async function fetchCrops() {
+    const { data, error } = await supabase
+      .from("crops")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching crops:", error);
+      return;
+    }
+
+    const mapped = (data || []).map((crop) => ({
+      id: crop.id,
+      name: crop.name,
+      season: crop.season,
+      currentAmount: crop.current_amount,
+      manualAvgCropPeriodDays: crop.manual_avg_crop_period_days,
+    }));
+
+    setCrops(mapped);
+  }
+
   const visibleCrops = useMemo(() => {
     const filtered = crops.filter((crop) => {
       const matchesQuery = crop.name.toLowerCase().includes(query.toLowerCase());
-      const matchesSeason = seasonFilter === "ALL" || crop.season === seasonFilter;
+      const matchesSeason =
+        seasonFilter === "ALL" || crop.season === seasonFilter;
       return matchesQuery && matchesSeason;
     });
 
@@ -109,7 +113,7 @@ export default function App() {
       WINTER: 3,
     };
 
-    const sorted = [...filtered].sort((a, b) => {
+    return [...filtered].sort((a, b) => {
       switch (sortBy) {
         case "alpha-asc":
           return a.name.localeCompare(b.name);
@@ -120,19 +124,21 @@ export default function App() {
         case "amount-desc":
           return b.currentAmount - a.currentAmount;
         case "days-asc":
-          return (a.manualAvgCropPeriodDays ?? Number.MAX_SAFE_INTEGER) -
-            (b.manualAvgCropPeriodDays ?? Number.MAX_SAFE_INTEGER);
+          return (
+            (a.manualAvgCropPeriodDays ?? Number.MAX_SAFE_INTEGER) -
+            (b.manualAvgCropPeriodDays ?? Number.MAX_SAFE_INTEGER)
+          );
         case "days-desc":
-          return (b.manualAvgCropPeriodDays ?? -1) -
-            (a.manualAvgCropPeriodDays ?? -1);
+          return (
+            (b.manualAvgCropPeriodDays ?? -1) -
+            (a.manualAvgCropPeriodDays ?? -1)
+          );
         case "season":
           return seasonOrder[a.season] - seasonOrder[b.season];
         default:
           return 0;
       }
     });
-
-    return sorted;
   }, [crops, query, seasonFilter, sortBy]);
 
   const lowInventoryCount = useMemo(
@@ -142,8 +148,26 @@ export default function App() {
 
   const visibleCountLabel =
     seasonFilter === "ALL"
-      ? `Showing ${visibleCrops.length} crop${visibleCrops.length === 1 ? "" : "s"}`
-      : `Showing ${visibleCrops.length} ${seasonFilter.toLowerCase()} crop${visibleCrops.length === 1 ? "" : "s"}`;
+      ? `Showing ${visibleCrops.length} crop${
+          visibleCrops.length === 1 ? "" : "s"
+        }`
+      : `Showing ${visibleCrops.length} ${seasonFilter.toLowerCase()} crop${
+          visibleCrops.length === 1 ? "" : "s"
+        }`;
+
+  const user = session?.user;
+  const userName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split("@")[0] ||
+    "User";
+
+  const userAvatar =
+    user?.user_metadata?.avatar_url ||
+    user?.user_metadata?.picture ||
+    "";
+
+  const userEmail = user?.email || "";
 
   function updateForm(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -160,24 +184,48 @@ export default function App() {
     setError("");
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
+
     const validationError = validateCrop(form);
     if (validationError) {
       setError(validationError);
       return;
     }
 
-    const normalized = normalizeCrop(form, editingId);
+    const payload = {
+      user_id: session.user.id,
+      name: form.name.trim(),
+      season: form.season,
+      current_amount: Number(form.currentAmount),
+      manual_avg_crop_period_days:
+        form.manualAvgCropPeriodDays === ""
+          ? null
+          : Number(form.manualAvgCropPeriodDays),
+    };
 
     if (editingId) {
-      setCrops((prev) =>
-        prev.map((crop) => (crop.id === editingId ? normalized : crop))
-      );
+      const { error } = await supabase
+        .from("crops")
+        .update(payload)
+        .eq("id", editingId);
+
+      if (error) {
+        console.error("Error updating crop:", error);
+        setError("Could not update crop.");
+        return;
+      }
     } else {
-      setCrops((prev) => [normalized, ...prev]);
+      const { error } = await supabase.from("crops").insert(payload);
+
+      if (error) {
+        console.error("Error inserting crop:", error);
+        setError("Could not add crop.");
+        return;
+      }
     }
 
+    await fetchCrops();
     resetForm();
   }
 
@@ -196,12 +244,20 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function handleDelete(id) {
+  async function handleDelete(id) {
     const crop = crops.find((item) => item.id === id);
     const confirmed = window.confirm(`Delete ${crop?.name ?? "this crop"}?`);
     if (!confirmed) return;
 
-    setCrops((prev) => prev.filter((crop) => crop.id !== id));
+    const { error } = await supabase.from("crops").delete().eq("id", id);
+
+    if (error) {
+      console.error("Error deleting crop:", error);
+      setError("Could not delete crop.");
+      return;
+    }
+
+    await fetchCrops();
 
     if (editingId === id) {
       resetForm();
@@ -215,11 +271,41 @@ export default function App() {
     setInstallPrompt(null);
   }
 
-  function clearAll() {
-    const confirmed = window.confirm("Delete all saved crops on this device?");
+  async function clearAll() {
+    const confirmed = window.confirm("Delete all your saved crops?");
     if (!confirmed) return;
-    setCrops([]);
+
+    const { error } = await supabase
+      .from("crops")
+      .delete()
+      .eq("user_id", session.user.id);
+
+    if (error) {
+      console.error("Error clearing crops:", error);
+      setError("Could not clear crops.");
+      return;
+    }
+
+    await fetchCrops();
     resetForm();
+  }
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+  }
+
+  if (loading) {
+    return (
+      <div className="app-shell">
+        <section className="panel">
+          <p>Loading...</p>
+        </section>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <Auth />;
   }
 
   return (
@@ -228,21 +314,43 @@ export default function App() {
         <div>
           <p className="eyebrow">Project Evergreen</p>
           <h1>Seed Inventory</h1>
-          <p className="subtext">Manage your seed inventory with ease.</p>
+          <p className="subtext">
+            Manage your seed inventory with ease.
+          </p>
         </div>
 
         <div className="hero-actions">
+          <div className="user-chip">
+            {userAvatar ? (
+              <img className="user-avatar" src={userAvatar} alt={userName} />
+            ) : (
+              <div className="user-avatar fallback-avatar">
+                {userName.charAt(0).toUpperCase()}
+              </div>
+            )}
+
+            <div className="user-details">
+              <strong>{userName}</strong>
+              <span>{userEmail}</span>
+            </div>
+          </div>
+
           {installPrompt && (
             <button className="primary-btn" onClick={handleInstall}>
               Install App
             </button>
           )}
+
           <button
             className="secondary-btn"
             onClick={clearAll}
             disabled={crops.length === 0}
           >
             Clear All
+          </button>
+
+          <button className="ghost-btn" onClick={handleSignOut}>
+            Sign Out
           </button>
         </div>
       </header>
@@ -312,7 +420,9 @@ export default function App() {
               min="0"
               step="1"
               value={form.manualAvgCropPeriodDays}
-              onChange={(e) => updateForm("manualAvgCropPeriodDays", e.target.value)}
+              onChange={(e) =>
+                updateForm("manualAvgCropPeriodDays", e.target.value)
+              }
               placeholder="Optional"
             />
           </label>
