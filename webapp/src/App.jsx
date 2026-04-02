@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 const SEASONS = ["WINTER", "SPRING", "SUMMER", "FALL"];
 const STORAGE_KEY = "evergreen-crops-v1";
+const LOW_STOCK_THRESHOLD = 10;
 
 function loadCrops() {
   try {
@@ -77,6 +78,7 @@ export default function App() {
   const [editingId, setEditingId] = useState(null);
   const [query, setQuery] = useState("");
   const [seasonFilter, setSeasonFilter] = useState("ALL");
+  const [sortBy, setSortBy] = useState("alpha-asc");
   const [error, setError] = useState("");
   const [installPrompt, setInstallPrompt] = useState(null);
 
@@ -94,24 +96,66 @@ export default function App() {
   }, []);
 
   const visibleCrops = useMemo(() => {
-    return crops.filter((crop) => {
+    const filtered = crops.filter((crop) => {
       const matchesQuery = crop.name.toLowerCase().includes(query.toLowerCase());
       const matchesSeason = seasonFilter === "ALL" || crop.season === seasonFilter;
       return matchesQuery && matchesSeason;
     });
-  }, [crops, query, seasonFilter]);
+
+    const seasonOrder = {
+      SPRING: 0,
+      SUMMER: 1,
+      FALL: 2,
+      WINTER: 3,
+    };
+
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case "alpha-asc":
+          return a.name.localeCompare(b.name);
+        case "alpha-desc":
+          return b.name.localeCompare(a.name);
+        case "amount-asc":
+          return a.currentAmount - b.currentAmount;
+        case "amount-desc":
+          return b.currentAmount - a.currentAmount;
+        case "days-asc":
+          return (a.manualAvgCropPeriodDays ?? Number.MAX_SAFE_INTEGER) -
+            (b.manualAvgCropPeriodDays ?? Number.MAX_SAFE_INTEGER);
+        case "days-desc":
+          return (b.manualAvgCropPeriodDays ?? -1) -
+            (a.manualAvgCropPeriodDays ?? -1);
+        case "season":
+          return seasonOrder[a.season] - seasonOrder[b.season];
+        default:
+          return 0;
+      }
+    });
+
+    return sorted;
+  }, [crops, query, seasonFilter, sortBy]);
 
   const lowInventoryCount = useMemo(
-    () => crops.filter((c) => c.currentAmount < 10).length,
+    () => crops.filter((c) => c.currentAmount < LOW_STOCK_THRESHOLD).length,
     [crops]
   );
+
+  const visibleCountLabel =
+    seasonFilter === "ALL"
+      ? `Showing ${visibleCrops.length} crop${visibleCrops.length === 1 ? "" : "s"}`
+      : `Showing ${visibleCrops.length} ${seasonFilter.toLowerCase()} crop${visibleCrops.length === 1 ? "" : "s"}`;
 
   function updateForm(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
   function resetForm() {
-    setForm(emptyForm);
+    setForm((prev) => ({
+      name: "",
+      season: prev.season,
+      currentAmount: "0",
+      manualAvgCropPeriodDays: "",
+    }));
     setEditingId(null);
     setError("");
   }
@@ -184,9 +228,7 @@ export default function App() {
         <div>
           <p className="eyebrow">Project Evergreen</p>
           <h1>Seed Inventory</h1>
-          <p className="subtext">
-            A phone-friendly crop tracker that keeps working on this device, even offline.
-          </p>
+          <p className="subtext">Manage your seed inventory with ease.</p>
         </div>
 
         <div className="hero-actions">
@@ -211,12 +253,8 @@ export default function App() {
           <strong>{crops.length}</strong>
         </div>
         <div className="stat-card">
-          <span>Low Inventory</span>
+          <span>Low Stock</span>
           <strong>{lowInventoryCount}</strong>
-        </div>
-        <div className="stat-card">
-          <span>Offline Ready</span>
-          <strong>Yes</strong>
         </div>
       </section>
 
@@ -297,6 +335,7 @@ export default function App() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search crops"
             />
+
             <select
               value={seasonFilter}
               onChange={(e) => setSeasonFilter(e.target.value)}
@@ -308,8 +347,23 @@ export default function App() {
                 </option>
               ))}
             </select>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="alpha-asc">Alphabetical (A-Z)</option>
+              <option value="alpha-desc">Alphabetical (Z-A)</option>
+              <option value="amount-asc">Amount (Low to High)</option>
+              <option value="amount-desc">Amount (High to Low)</option>
+              <option value="days-asc">Avg Days (Low to High)</option>
+              <option value="days-desc">Avg Days (High to Low)</option>
+              <option value="season">Season</option>
+            </select>
           </div>
         </div>
+
+        <p className="results-count">{visibleCountLabel}</p>
 
         {visibleCrops.length === 0 ? (
           <div className="empty-state">
@@ -325,7 +379,9 @@ export default function App() {
                     <h3>{crop.name}</h3>
                     <p>{crop.season}</p>
                   </div>
-                  {crop.currentAmount < 10 && <span className="low-badge">Low Stock</span>}
+                  {crop.currentAmount < LOW_STOCK_THRESHOLD && (
+                    <span className="low-badge">Low Stock</span>
+                  )}
                 </div>
 
                 <div className="crop-meta">
@@ -340,10 +396,18 @@ export default function App() {
                 </div>
 
                 <div className="card-actions">
-                  <button className="secondary-btn" type="button" onClick={() => handleEdit(crop)}>
+                  <button
+                    className="secondary-btn"
+                    type="button"
+                    onClick={() => handleEdit(crop)}
+                  >
                     Edit
                   </button>
-                  <button className="danger-btn" type="button" onClick={() => handleDelete(crop.id)}>
+                  <button
+                    className="danger-btn"
+                    type="button"
+                    onClick={() => handleDelete(crop.id)}
+                  >
                     Delete
                   </button>
                 </div>
