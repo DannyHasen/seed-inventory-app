@@ -39,6 +39,22 @@ This application provides a clean and intuitive interface for managing crops, co
 
 ---
 
+## 📸 Screenshots
+
+### 🔐 Login
+
+![Login](assets/login.png)
+
+### 🌾 Dashboard
+
+![Dashboard](assets/dashboard.png)
+
+### 📊 Inventory View
+
+![Dashboard View](assets/dashboard2.png)
+
+---
+
 ## 🛠️ Tech Stack
 
 ### Frontend (`/webapp`)
