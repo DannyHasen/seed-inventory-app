@@ -1,52 +1,105 @@
-# Lopez Urban Farm Inventory System
+# 🌱 Seed Inventory Tracker
 
-The **Lopez Urban Farm Inventory System** is a Spring Boot–based application designed to support inventory management for the Lopez Urban Farm, a community-focused agricultural project located on West Mission Boulevard in Pomona.
+A full-stack seed inventory management system designed for gardeners, urban farms, and small-scale agricultural projects to track seed stock, planting data, and inventory levels.
 
-The goal of this project is to help track seeds and inventory levels while supporting sustainable and responsible urban farming practices.
+This application provides a clean and intuitive interface for managing crops, combined with a secure backend for data storage and user authentication.
 
 ---
 
-## 🌱 Project Overview
+## 🚀 Live Demo
 
-The Lopez Urban Farm provides fresh vegetables and green space to the local community. This application serves as a backend system to manage:
+👉 https://seed-inventory-tracker.vercel.app/
 
-- Seed inventory records
-- Stock levels (add/remove inventory)
-- Basic administrative access
-- Data persistence using a relational database
+---
 
-This project is currently focused on delivering a functional MVP suitable for demonstration and academic evaluation.
+## ✨ Features
+
+### 🌾 Inventory Management
+
+* Create, read, update, and delete crop records
+* Track seed quantities and availability
+* Prevent invalid operations (e.g., negative stock)
+
+### 🔐 Authentication
+
+* Google OAuth login via Supabase
+* Per-user data isolation (each user has their own inventory)
+
+### 📊 Data Organization
+
+* Search, filter, and sort crops
+* Clean card-based UI for quick scanning
+* Mobile-friendly responsive design
+
+### ⚡ Performance & UX
+
+* Fast React frontend built with Vite
+* Optimized rendering using React hooks
+* Smooth and modern UI design
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Java**
-- **Spring Boot**
-- **Spring Data JPA**
-- **Spring Security**
-- **PostgreSQL**
-- **Maven**
+### Frontend (`/webapp`)
+
+* React (Vite)
+* Supabase (Auth + Database)
+* CSS (custom styling)
+
+### Backend (root)
+
+* Java
+* Spring Boot
+* Spring Data JPA
+* PostgreSQL
+* Maven
 
 ---
 
-## 🚀 Features (MVP)
+## 📁 Project Structure
 
-- Create, read, update, and delete seed records
-- Track inventory quantities
-- Prevent invalid inventory operations (e.g., negative stock)
-- Secure endpoints with basic authentication
-- RESTful API design
+```
+testing-edits/
+├── src/                # Spring Boot backend
+├── pom.xml
+├── webapp/             # React + Vite frontend
+│   ├── src/
+│   ├── public/
+│   ├── package.json
+│   └── vite.config.js
+```
 
 ---
 
-## ▶️ Running the Application
+## ▶️ Running the App Locally
 
-### Prerequisites
-- Java 17+
-- Maven (or use the Maven wrapper)
-- PostgreSQL
+### Backend
 
-### Run locally
 ```bash
 ./mvnw spring-boot:run
+```
+
+### Frontend
+
+```bash
+cd webapp
+npm install
+npm run dev
+```
+
+---
+
+## 🔮 Future Improvements
+
+* Offline support (PWA)
+* Push notifications for low inventory
+* Crop planting/harvest tracking
+* Image uploads for crops
+* Analytics dashboard
+
+---
+
+## 👤 Author
+
+Built and maintained by Danny Hasen
