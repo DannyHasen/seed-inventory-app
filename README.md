@@ -2,7 +2,7 @@
 
 A full-stack seed inventory management system designed for gardeners, urban farms, and small-scale agricultural projects to track seed stock, planting data, and inventory levels.
 
-This application provides a clean and intuitive interface for managing crops, combined with a secure backend for data storage and user authentication.
+This application provides a clean, modern interface for managing crops, combined with secure authentication and cloud-backed data storage.
 
 ---
 
@@ -36,6 +36,12 @@ This application provides a clean and intuitive interface for managing crops, co
 * Fast React frontend built with Vite
 * Optimized rendering using React hooks
 * Smooth and modern UI design
+
+### 📱 Progressive Web App (PWA)
+
+* Installable on desktop and mobile devices
+* Runs as a standalone app (no browser UI)
+* Offline-ready architecture (UI caching enabled)
 
 ---
 
@@ -76,7 +82,7 @@ This application provides a clean and intuitive interface for managing crops, co
 ## 📁 Project Structure
 
 ```
-testing-edits/
+seed-inventory-app/
 ├── src/                # Spring Boot backend
 ├── pom.xml
 ├── webapp/             # React + Vite frontend
@@ -106,9 +112,20 @@ npm run dev
 
 ---
 
+## 🔑 Environment Variables
+
+Create a `.env` file inside `/webapp`:
+
+```
+VITE_SUPABASE_URL=your_url
+VITE_SUPABASE_ANON_KEY=your_key
+```
+
+---
+
 ## 🔮 Future Improvements
 
-* Offline support (PWA)
+* Full offline support (local caching + sync)
 * Push notifications for low inventory
 * Crop planting/harvest tracking
 * Image uploads for crops
