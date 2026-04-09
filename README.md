@@ -61,6 +61,14 @@ This application provides a clean, modern interface for managing crops, combined
 
 ---
 
+## 📱 Mobile Install (PWA)
+
+Installable on mobile devices for a native app experience.
+
+![Mobile App](assets/mobile.png)
+
+---
+
 ## 🛠️ Tech Stack
 
 ### Frontend (`/webapp`)
