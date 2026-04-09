@@ -65,7 +65,9 @@ This application provides a clean, modern interface for managing crops, combined
 
 Installable on mobile devices for a native app experience.
 
-![Mobile App](assets/mobile.png)
+<p align="center">
+  <img src="assets/mobile.png" width="250"/>
+</p>
 
 ---
 
